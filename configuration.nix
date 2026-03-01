@@ -191,7 +191,7 @@
   };
   system.stateversion = "25.05";
 
-  networking.firewall.allowedtcpports = [
+  networking.firewall.allowedTCPPorts = [
     22
     8000
   ];
