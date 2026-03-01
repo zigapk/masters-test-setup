@@ -111,7 +111,7 @@
   # grant the 'realtime' group the ability to request maximum
   # cpu priority (99) and lock memory (prevents the os from
   # swapping your robot's memory to disk, which causes latency).
-  security.pam.loginlimits = [
+  security.pam.loginLimits = [
     {
       domain = "@realtime";
       type = "-";
