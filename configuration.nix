@@ -16,7 +16,6 @@
 
   # bootloader.
   boot.loader.systemd-boot.enable = true;
-  boot.loader.efi.cantouchefivariables = true;
 
   networking.hostname = hostname;
   networking.networkmanager.enable = true;
