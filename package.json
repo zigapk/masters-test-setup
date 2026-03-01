@@ -1,0 +1,26 @@
+{
+  "name": "masters-test-setup",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "follow": "tsx src/main.tsx"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "packageManager": "pnpm@10.13.1",
+  "dependencies": {
+    "hertz": "github:zigapk/hertz",
+    "llamajet-driver-ts": "github:llamajet/llamajet-driver-ts",
+    "react": "^19.2.4",
+    "react-error-boundary": "^6.1.1",
+    "serialport": "^13.0.0"
+  },
+  "devDependencies": {
+    "@biomejs/biome": "^2.4.4",
+    "@types/node": "^25.3.3",
+    "@types/react": "^19.2.14",
+    "tsx": "^4.21.0"
+  }
+}

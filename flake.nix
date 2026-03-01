@@ -28,7 +28,10 @@
         pkgs = import nixpkgs {
           inherit system;
         };
-        nativeBuildInputs = with pkgs; [ ];
+        nativeBuildInputs = with pkgs; [
+          nodejs_22
+          corepack_22
+        ];
         buildInputs = [ ];
       in
       {
