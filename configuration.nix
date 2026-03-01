@@ -30,10 +30,6 @@
   # Select internationalisation properties.
   i18n.defaultLocale = "en_US.UTF-8";
 
-  imports = [
-    ./modules/keyd.nix
-  ];
-
   # Caps to ctrl/escape remapping for convience
   services.keyd = {
     enable = true;
