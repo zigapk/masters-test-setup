@@ -103,7 +103,7 @@
     '';
   };
 
-  users.defaultusershell = pkgs.zsh;
+  users.defaultUserShell = pkgs.zsh;
 
   # add a group for realtime privileges
   users.groups.realtime = { };
