@@ -24,7 +24,7 @@
   programs.nix-ld.enable = true;
 
   # set your time zone.
-  time.timezone = "europe/ljubljana";
+  time.timeZone = "europe/ljubljana";
 
   # select internationalisation properties.
   i18n.defaultLocale = "en_us.utf-8";
