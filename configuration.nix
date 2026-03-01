@@ -12,7 +12,7 @@
 
   # isolate the cpu core 3 to perform testing on.
   boot.kernelParams = [ "isolcpus=3" ];
-  hardware.enableallfirmware = true;
+  hardware.enableAllFirmware = true;
 
   # bootloader.
   boot.loader.systemd-boot.enable = true;
