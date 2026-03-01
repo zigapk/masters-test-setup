@@ -8,7 +8,7 @@
     "nix-command"
     "flakes"
   ];
-  boot.kernelpackages = pkgs.linuxpackages-rt_latest;
+  boot.kernelpackages = pkgs.linuxPackages-rt_latest;
 
   # isolate the cpu core 3 to perform testing on.
   boot.kernelparams = [ "isolcpus=3" ];
