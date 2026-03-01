@@ -25,10 +25,10 @@
   programs.nix-ld.enable = true;
 
   # set your time zone.
-  time.timeZone = "europe/ljubljana";
+  time.timeZone = "Europe/Ljubljana";
 
   # select internationalisation properties.
-  i18n.defaultLocale = "en_us.utf-8";
+  i18n.defaultLocale = "en_US.UTF-8";
 
   # caps to ctrl/escape remapping for convience
   services.keyd = {
