@@ -48,15 +48,29 @@
     };
   };
 
-  # set zsh a default for all users
+  # Set zsh as a default for all users
   programs.zsh = {
     enable = true;
-    shellaliases = {
+
+    # 1. NixOS has built-in options for these two plugins:
+    autosuggestions.enable = true;
+    syntaxHighlighting.enable = true;
+
+    shellAliases = {
       vim = "nvim";
       cat = "bat";
       finit = "rm -rf .envrc .direnv && echo \"use flake\" >> .envrc && direnv allow";
       v = "nvim .";
     };
+
+    ohMyZsh = {
+      enable = true;
+      plugins = [
+        "git"
+        "sudo"
+      ];
+    };
+
     interactiveShellInit = ''
       zsh_disable_compfix=true
       export EDITOR=nvim
@@ -80,37 +94,13 @@
       eval "$(direnv hook zsh)"
       eval "$(fzf --zsh)"
       eval "$(zoxide init --cmd cd zsh)"
+
+      # 2. Source fzf-tab directly since it lacks a built-in NixOS toggle
+      source ${pkgs.zsh-fzf-tab}/share/fzf-tab/fzf-tab.plugin.zsh
+
+      # 3. Add zsh-completions to fpath so the shell knows where to find them
+      fpath+=(${pkgs.zsh-completions}/share/zsh-completions)
     '';
-    oh-my-zsh = {
-      enable = true;
-      plugins = [
-        "git"
-        "sudo"
-      ];
-    };
-    plugins = [
-      {
-        # will source zsh-autosuggestions.plugin.zsh
-        name = "zsh-autosuggestions";
-        src = pkgs.zsh-autosuggestions;
-        file = "share/zsh-autosuggestions/zsh-autosuggestions.zsh";
-      }
-      {
-        name = "zsh-completions";
-        src = pkgs.zsh-completions;
-        file = "share/zsh-completions/zsh-completions.zsh";
-      }
-      {
-        name = "zsh-syntax-highlighting";
-        src = pkgs.zsh-syntax-highlighting;
-        file = "share/zsh-syntax-highlighting/zsh-syntax-highlighting.zsh";
-      }
-      {
-        name = "fzf-tab";
-        src = pkgs.zsh-fzf-tab;
-        file = "share/fzf-tab/fzf-tab.plugin.zsh";
-      }
-    ];
   };
 
   users.defaultusershell = pkgs.zsh;
