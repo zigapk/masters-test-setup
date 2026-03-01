@@ -175,8 +175,8 @@
   services.openssh = {
     enable = true;
     settings = {
-      passwordauthentication = false;
-      permitrootlogin = "no";
+      passwordAuthentication = false;
+      permitRootLogin = "no";
     };
   };
   system.stateVersion = "25.11";
