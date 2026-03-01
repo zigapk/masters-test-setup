@@ -152,7 +152,7 @@
   };
 
   # list packages installed in system profile. to search, run:
-  environment.systempackages = with pkgs; [
+  environment.systemPackages = with pkgs; [
     git
     neovim
     pciutils
