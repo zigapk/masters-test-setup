@@ -58,31 +58,6 @@
       finit = "rm -rf .envrc .direnv && echo \"use flake\" >> .envrc && direnv allow";
       v = "nvim .";
     };
-    initContent = ''
-      ZSH_DISABLE_COMPFIX=true
-      export EDITOR=nvim
-      export VISUAL="nvim"
-      export BAT_THEME="Dracula"
-      export LS_COLORS=$(vivid generate dracula)
-
-      setopt appendhistory
-      setopt sharehistory
-      setopt hist_ignore_space
-      setopt hist_ignore_all_dups
-      setopt hist_save_no_dups
-      setopt hist_ignore_dups
-      setopt hist_find_no_dups
-
-      zstyle ':fzf-tab:complete:cd:*' fzf-preview 'ls --color $realpath'
-      zstyle ':fzf-tab:complete:__zoxide_z:*' fzf-preview 'ls --color $realpath'
-
-      # Shell integrations
-      eval "$(atuin init zsh --disable-up-arrow)"
-      eval "$(direnv hook zsh)"
-      eval "$(fzf --zsh)"
-      eval "$(zoxide init --cmd cd zsh)"
-
-    '';
     oh-my-zsh = {
       enable = true;
       plugins = [
@@ -114,6 +89,31 @@
       }
     ];
   };
+  packages.zsh.initContent = ''
+    ZSH_DISABLE_COMPFIX=true
+    export EDITOR=nvim
+    export VISUAL="nvim"
+    export BAT_THEME="Dracula"
+    export LS_COLORS=$(vivid generate dracula)
+
+    setopt appendhistory
+    setopt sharehistory
+    setopt hist_ignore_space
+    setopt hist_ignore_all_dups
+    setopt hist_save_no_dups
+    setopt hist_ignore_dups
+    setopt hist_find_no_dups
+
+    zstyle ':fzf-tab:complete:cd:*' fzf-preview 'ls --color $realpath'
+    zstyle ':fzf-tab:complete:__zoxide_z:*' fzf-preview 'ls --color $realpath'
+
+    # Shell integrations
+    eval "$(atuin init zsh --disable-up-arrow)"
+    eval "$(direnv hook zsh)"
+    eval "$(fzf --zsh)"
+    eval "$(zoxide init --cmd cd zsh)"
+
+  '';
   users.defaultUserShell = pkgs.zsh;
 
   # Add a group for realtime privileges
