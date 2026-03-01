@@ -164,6 +164,7 @@
     jq
     bat
     lazygit
+    tmux
   ];
 
   programs.nix-index = {
