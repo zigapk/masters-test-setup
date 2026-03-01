@@ -17,7 +17,7 @@
   # bootloader.
   boot.loader.systemd-boot.enable = true;
 
-  networking.hostname = hostname;
+  networking.hostName = hostname;
   networking.networkmanager.enable = true;
 
   # dynamicall linked executables support
