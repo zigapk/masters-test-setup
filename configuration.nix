@@ -179,7 +179,7 @@
       permitrootlogin = "no";
     };
   };
-  system.stateversion = "25.05";
+  system.stateVersion = "25.11";
 
   networking.firewall.allowedTCPPorts = [
     22
