@@ -8,40 +8,40 @@
     "nix-command"
     "flakes"
   ];
-  boot.kernelPackages = pkgs.linuxPackages-rt_latest;
+  boot.kernelpackages = pkgs.linuxpackages-rt_latest;
 
-  # Isolate the CPU core 3 to perform testing on.
-  boot.kernelParams = [ "isolcpus=3" ];
-  hardware.enableAllFirmware = true;
+  # isolate the cpu core 3 to perform testing on.
+  boot.kernelparams = [ "isolcpus=3" ];
+  hardware.enableallfirmware = true;
 
-  # Bootloader.
+  # bootloader.
   boot.loader.systemd-boot.enable = true;
-  boot.loader.efi.canTouchEfiVariables = true;
+  boot.loader.efi.cantouchefivariables = true;
 
-  networking.hostName = hostname;
+  networking.hostname = hostname;
   networking.networkmanager.enable = true;
 
-  # Dynamicall linked executables support
+  # dynamicall linked executables support
   programs.nix-ld.enable = true;
 
-  # Set your time zone.
-  time.timeZone = "Europe/Ljubljana";
+  # set your time zone.
+  time.timezone = "europe/ljubljana";
 
-  # Select internationalisation properties.
-  i18n.defaultLocale = "en_US.UTF-8";
+  # select internationalisation properties.
+  i18n.defaultlocale = "en_us.utf-8";
 
-  # Caps to ctrl/escape remapping for convience
+  # caps to ctrl/escape remapping for convience
   services.keyd = {
     enable = true;
 
     keyboards = {
       default = {
-        # Apply to all keyboards
+        # apply to all keyboards
         ids = [ "*" ];
 
         settings = {
           main = {
-            # Maps CapsLock → Esc when tapped, Ctrl when held
+            # maps capslock → esc when tapped, ctrl when held
             capslock = "overload(control, esc)";
           };
         };
@@ -49,15 +49,39 @@
     };
   };
 
-  # Set zsh a default for all users
+  # set zsh a default for all users
   programs.zsh = {
     enable = true;
-    shellAliases = {
+    shellaliases = {
       vim = "nvim";
       cat = "bat";
       finit = "rm -rf .envrc .direnv && echo \"use flake\" >> .envrc && direnv allow";
       v = "nvim .";
     };
+    interactiveShellInit = ''
+      zsh_disable_compfix=true
+      export EDITOR=nvim
+      export VISUAL="nvim"
+      export BAT_THEME="dracula"
+      export LS_COLORS=$(vivid generate dracula)
+
+      setopt appendhistory
+      setopt sharehistory
+      setopt hist_ignore_space
+      setopt hist_ignore_all_dups
+      setopt hist_save_no_dups
+      setopt hist_ignore_dups
+      setopt hist_find_no_dups
+
+      zstyle ':fzf-tab:complete:cd:*' fzf-preview 'ls --color $realpath'
+      zstyle ':fzf-tab:complete:__zoxide_z:*' fzf-preview 'ls --color $realpath'
+
+      # Shell integrations
+      eval "$(atuin init zsh --disable-up-arrow)"
+      eval "$(direnv hook zsh)"
+      eval "$(fzf --zsh)"
+      eval "$(zoxide init --cmd cd zsh)"
+    '';
     oh-my-zsh = {
       enable = true;
       plugins = [
@@ -89,40 +113,16 @@
       }
     ];
   };
-  packages.zsh.initContent = ''
-    ZSH_DISABLE_COMPFIX=true
-    export EDITOR=nvim
-    export VISUAL="nvim"
-    export BAT_THEME="Dracula"
-    export LS_COLORS=$(vivid generate dracula)
 
-    setopt appendhistory
-    setopt sharehistory
-    setopt hist_ignore_space
-    setopt hist_ignore_all_dups
-    setopt hist_save_no_dups
-    setopt hist_ignore_dups
-    setopt hist_find_no_dups
+  users.defaultusershell = pkgs.zsh;
 
-    zstyle ':fzf-tab:complete:cd:*' fzf-preview 'ls --color $realpath'
-    zstyle ':fzf-tab:complete:__zoxide_z:*' fzf-preview 'ls --color $realpath'
-
-    # Shell integrations
-    eval "$(atuin init zsh --disable-up-arrow)"
-    eval "$(direnv hook zsh)"
-    eval "$(fzf --zsh)"
-    eval "$(zoxide init --cmd cd zsh)"
-
-  '';
-  users.defaultUserShell = pkgs.zsh;
-
-  # Add a group for realtime privileges
+  # add a group for realtime privileges
   users.groups.realtime = { };
 
-  # Grant the 'realtime' group the ability to request maximum
-  # CPU priority (99) and lock memory (prevents the OS from
+  # grant the 'realtime' group the ability to request maximum
+  # cpu priority (99) and lock memory (prevents the os from
   # swapping your robot's memory to disk, which causes latency).
-  security.pam.loginLimits = [
+  security.pam.loginlimits = [
     {
       domain = "@realtime";
       type = "-";
@@ -137,23 +137,23 @@
     }
   ];
 
-  # Define a user account
+  # define a user account
   users.users.zigapk = {
-    isNormalUser = true;
-    description = "Žiga Patačko Koderman";
-    extraGroups = [
+    isnormaluser = true;
+    description = "žiga patačko koderman";
+    extragroups = [
       "dialout"
       "networkmanager"
       "wheel"
       "realtime"
     ];
-    openssh.authorizedKeys.keys = [
-      "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIG5r1Mt9pLlX7cA8F6ZVZSkrP/k9sPVSrSbeNSnyumrY"
+    openssh.authorizedkeys.keys = [
+      "ssh-ed25519 aaaac3nzac1lzdi1nte5aaaaig5r1mt9pllx7ca8f6zvzskrp/k9spvsrsbensnyumry"
     ];
   };
 
-  # List packages installed in system profile. To search, run:
-  environment.systemPackages = with pkgs; [
+  # list packages installed in system profile. to search, run:
+  environment.systempackages = with pkgs; [
     git
     neovim
     pciutils
@@ -178,21 +178,21 @@
 
   programs.nix-index = {
     enable = true;
-    enableZshIntegration = false;
-    enableBashIntegration = false;
+    enablezshintegration = false;
+    enablebashintegration = false;
   };
 
-  # Enable the OpenSSH daemon.
+  # enable the openssh daemon.
   services.openssh = {
     enable = true;
     settings = {
-      PasswordAuthentication = false;
-      PermitRootLogin = "no";
+      passwordauthentication = false;
+      permitrootlogin = "no";
     };
   };
-  system.stateVersion = "25.05";
+  system.stateversion = "25.05";
 
-  networking.firewall.allowedTCPPorts = [
+  networking.firewall.allowedtcpports = [
     22
     8000
   ];
