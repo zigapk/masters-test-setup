@@ -130,7 +130,7 @@
   users.users.zigapk = {
     isnormaluser = true;
     description = "žiga patačko koderman";
-    extragroups = [
+    extraGroups = [
       "dialout"
       "networkmanager"
       "wheel"
