@@ -128,7 +128,7 @@
 
   # define a user account
   users.users.zigapk = {
-    isnormaluser = true;
+    isNormalUser = true;
     description = "žiga patačko koderman";
     extraGroups = [
       "dialout"
@@ -136,7 +136,7 @@
       "wheel"
       "realtime"
     ];
-    openssh.authorizedkeys.keys = [
+    openssh.authorizedKeys.keys = [
       "ssh-ed25519 aaaac3nzac1lzdi1nte5aaaaig5r1mt9pllx7ca8f6zvzskrp/k9spvsrsbensnyumry"
     ];
   };
