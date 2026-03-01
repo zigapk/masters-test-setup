@@ -27,7 +27,7 @@
   time.timezone = "europe/ljubljana";
 
   # select internationalisation properties.
-  i18n.defaultlocale = "en_us.utf-8";
+  i18n.defaultLocale = "en_us.utf-8";
 
   # caps to ctrl/escape remapping for convience
   services.keyd = {
