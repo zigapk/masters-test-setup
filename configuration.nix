@@ -177,8 +177,8 @@
 
   programs.nix-index = {
     enable = true;
-    enablezshintegration = false;
-    enablebashintegration = false;
+    enableZshIntegration = true;
+    enableBashIntegration = false;
   };
 
   # enable the openssh daemon.
