@@ -138,7 +138,7 @@
       "realtime"
     ];
     openssh.authorizedKeys.keys = [
-      "ssh-ed25519 aaaac3nzac1lzdi1nte5aaaaig5r1mt9pllx7ca8f6zvzskrp/k9spvsrsbensnyumry"
+      "ssh-ed25519 ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIG5r1Mt9pLlX7cA8F6ZVZSkrP/k9sPVSrSbeNSnyumrY"
     ];
   };
 
