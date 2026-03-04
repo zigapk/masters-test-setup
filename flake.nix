@@ -31,6 +31,8 @@
         nativeBuildInputs = with pkgs; [
           nodejs_22
           corepack_22
+          go
+          python314
         ];
         buildInputs = [ ];
       in
@@ -53,8 +55,8 @@
             ;
         };
         modules = [
-          ./hardware-configuration.nix
-          ./configuration.nix
+          ./nix/hardware-configuration.nix
+          ./nix/configuration.nix
         ];
       };
     };

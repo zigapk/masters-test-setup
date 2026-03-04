@@ -1,0 +1,11 @@
+[project]
+name = "measurement"
+version = "0.1.0"
+description = "Measurement and analysis scripts"
+readme = "README.md"
+requires-python = ">=3.14"
+dependencies = [
+  "matplotlib>=3.10.0",
+  "pandas>=2.2.0",
+  "saleae>=0.12.0",
+]
