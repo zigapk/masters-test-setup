@@ -14,8 +14,8 @@
   # isolate the cpu core 3 to perform testing on.
   boot.kernelParams = [ "isolcpus=3" ];
   hardware.enableAllFirmware = true;
+  hardware.saleae-logic.enable = true;
 
-  # bootloader.
   boot.loader.systemd-boot.enable = true;
 
   networking.hostName = hostname;
@@ -165,6 +165,7 @@
     bat
     lazygit
     tmux
+    saleae-logic-2
   ];
 
   programs.nix-index = {

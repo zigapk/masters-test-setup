@@ -33,12 +33,21 @@
           corepack_22
           go
           python314
+          xvfb-run
         ];
         buildInputs = [ ];
       in
       {
         devShells.default = pkgs.mkShell {
           inherit buildInputs nativeBuildInputs;
+          # Dynamically link the C++ libraries required by pre-compiled Python wheels
+          LD_LIBRARY_PATH = pkgs.lib.makeLibraryPath (
+            with pkgs;
+            [
+              stdenv.cc.cc.lib
+              zlib
+            ]
+          );
         };
       }
     )
