@@ -4,3 +4,7 @@ node_modules/
 result
 **/*.log
 **/*.pin-follow
+llamajet-driver
+llamajet-driver-ts
+hertz
+
