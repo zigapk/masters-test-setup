@@ -164,10 +164,21 @@
     jq
     bat
     lazygit
+    util-linux
     tmux
     saleae-logic-2
     ghostty.terminfo
   ];
+
+  # Allow chrt without sudo for users in the realtime group.
+  # This grants only CAP_SYS_NICE instead of full root privileges.
+  security.wrappers.chrt = {
+    source = "${pkgs.util-linux}/bin/chrt";
+    owner = "root";
+    group = "realtime";
+    permissions = "u+rx,g+rx,o-rwx";
+    capabilities = "cap_sys_nice=ep";
+  };
 
   programs.nix-index = {
     enable = true;
