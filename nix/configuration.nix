@@ -166,6 +166,7 @@
     lazygit
     tmux
     saleae-logic-2
+    ghostty.terminfo
   ];
 
   programs.nix-index = {
