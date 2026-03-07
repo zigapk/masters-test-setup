@@ -24,6 +24,17 @@
   # dynamicall linked executables support
   programs.nix-ld.enable = true;
 
+  programs.git = {
+    enable = true;
+    config = {
+      url = {
+        "ssh://git@github.com/" = {
+          insteadOf = "https://github.com/";
+        };
+      };
+    };
+  };
+
   # set your time zone.
   time.timeZone = "Europe/Ljubljana";
 
