@@ -32,6 +32,7 @@
           nodejs_22
           corepack_22
           go
+          uv
           python314
           xvfb-run
         ];
