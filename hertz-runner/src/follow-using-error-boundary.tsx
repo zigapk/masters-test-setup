@@ -81,13 +81,21 @@ const FollowWithDeepFluff = ({ n, i }: { n: number; i: number }) => {
 async function main() {
 	const program = new Command();
 	program
-		.requiredOption("-n, --n <number>", "value to pass to fluff components", parseInt)
+		.requiredOption(
+			"-n, --n <number>",
+			"value to pass to fluff components",
+			parseInt,
+		)
 		.addOption(
 			new Option("-f, --fluff-type <type>", "fluff type: deep or shallow")
 				.choices(["deep", "shallow"])
 				.makeOptionMandatory(),
 		)
-		.option("-i, --i <number>", "value for deep fluff (required when fluff-type is deep)", parseInt);
+		.option(
+			"-i, --i <number>",
+			"value for deep fluff (required when fluff-type is deep)",
+			parseInt,
+		);
 	program.parse();
 	const options = program.opts();
 	// biome-ignore lint/complexity/useLiteralKeys: Either way is fine.

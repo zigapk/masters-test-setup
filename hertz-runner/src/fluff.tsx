@@ -11,9 +11,10 @@ export const FluffNode = ({ pin }: { pin: number }) => {
 export const ShallowFluff = ({ n }: { n: number }) => {
 	return (
 		<>
-			{Array.from({ length: n }, (_, i) => i).map((pin) => {
+			{Array.from({ length: n }, (_, i) => i).map((i) => {
 				// A digital input node that does nothing
-				return <CCDPinIn key={pin} pin={pin} onValueChange={() => {}} />;
+				const pin = (i % (MAX_PIN_ID - MIN_PIN_ID)) + MIN_PIN_ID;
+				return <CCDPinIn key={i} pin={pin} onValueChange={() => {}} />;
 			})}
 		</>
 	);

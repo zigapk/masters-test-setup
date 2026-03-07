@@ -13,7 +13,7 @@ importers:
         version: 14.0.3
       hertz:
         specifier: github:zigapk/hertz
-        version: https://codeload.github.com/zigapk/hertz/tar.gz/5fe12b8e6f72233a6a10591d6516a81bb1c2673f(@types/react@19.2.14)(react-reconciler@0.33.0(react@19.2.4))(react@19.2.4)
+        version: https://codeload.github.com/zigapk/hertz/tar.gz/778ccb0060b666e4aa4a093e72576a6323788b0a(@types/react@19.2.14)(react-reconciler@0.33.0(react@19.2.4))(react@19.2.4)
       llamajet-driver-ts:
         specifier: github:llamajet/llamajet-driver-ts
         version: https://codeload.github.com/llamajet/llamajet-driver-ts/tar.gz/7d293ec56520c3f9a8be00ec722546619e8e85b1
@@ -350,8 +350,8 @@ packages:
   get-tsconfig@4.13.6:
     resolution: {integrity: sha512-shZT/QMiSHc/YBLxxOkMtgSid5HFoauqCE3/exfsEcwg1WkeqjG+V40yBbBrsD+jW2HDXcs28xOfcbm2jI8Ddw==}
 
-  hertz@https://codeload.github.com/zigapk/hertz/tar.gz/5fe12b8e6f72233a6a10591d6516a81bb1c2673f:
-    resolution: {tarball: https://codeload.github.com/zigapk/hertz/tar.gz/5fe12b8e6f72233a6a10591d6516a81bb1c2673f}
+  hertz@https://codeload.github.com/zigapk/hertz/tar.gz/778ccb0060b666e4aa4a093e72576a6323788b0a:
+    resolution: {tarball: https://codeload.github.com/zigapk/hertz/tar.gz/778ccb0060b666e4aa4a093e72576a6323788b0a}
     version: 0.0.1
     peerDependencies:
       react: ^19.2.0
@@ -648,7 +648,7 @@ snapshots:
     dependencies:
       resolve-pkg-maps: 1.0.0
 
-  hertz@https://codeload.github.com/zigapk/hertz/tar.gz/5fe12b8e6f72233a6a10591d6516a81bb1c2673f(@types/react@19.2.14)(react-reconciler@0.33.0(react@19.2.4))(react@19.2.4):
+  hertz@https://codeload.github.com/zigapk/hertz/tar.gz/778ccb0060b666e4aa4a093e72576a6323788b0a(@types/react@19.2.14)(react-reconciler@0.33.0(react@19.2.4))(react@19.2.4):
     dependencies:
       llamajet-driver-ts: https://codeload.github.com/llamajet/llamajet-driver-ts/tar.gz/7d293ec56520c3f9a8be00ec722546619e8e85b1
       node-graceful-shutdown: 1.1.5
