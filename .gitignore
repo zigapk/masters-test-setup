@@ -7,4 +7,5 @@ result
 llamajet-driver
 llamajet-driver-ts
 hertz
-
+**/bin/
+**/__pycache__/

@@ -1,4 +1,5 @@
 import argparse
+import glob
 import logging
 import os
 import shlex
@@ -6,6 +7,8 @@ import signal
 import subprocess
 import sys
 import time
+
+from digital_analyzer import analyze_csv
 
 
 def parse_args():
@@ -42,6 +45,35 @@ def parse_args():
         "--measure-python",
         default=sys.executable,
         help="Python interpreter for measurement process.",
+    )
+    parser.add_argument(
+        "--analyze",
+        action="store_true",
+        default=True,
+        help="Analyze captured CSV after measurement completes (enabled by default).",
+    )
+    parser.add_argument(
+        "--no-analyze",
+        dest="analyze",
+        action="store_false",
+        help="Disable post-measurement analysis.",
+    )
+    parser.add_argument(
+        "--analysis-csv",
+        default=None,
+        help="CSV file to analyze after measurement. If omitted, inferred from --export-dir.",
+    )
+    parser.add_argument(
+        "--analysis-max-events",
+        type=int,
+        default=10000,
+        help="Maximum number of events to include (default: 10000).",
+    )
+    parser.add_argument(
+        "--analysis-unit",
+        choices=("s", "ms", "us"),
+        default="ms",
+        help="Units for reported timing values (s/ms/us).",
     )
     return parser.parse_known_args()
 
@@ -122,6 +154,20 @@ def start_measurement(measure_python: str, measure_core: str, measure_args):
     )
 
 
+def _extract_export_dir(measure_args):
+    parser = argparse.ArgumentParser(add_help=False)
+    parser.add_argument("--export-dir")
+    parsed, _ = parser.parse_known_args(measure_args)
+    return parsed.export_dir
+
+
+def _latest_csv_in_dir(directory: str) -> str:
+    candidates = glob.glob(os.path.join(directory, "*.csv"))
+    if not candidates:
+        raise RuntimeError(f"No CSV files found in {directory!r}")
+    return max(candidates, key=os.path.getmtime)
+
+
 def main():
     logging.basicConfig(
         level=logging.INFO,
@@ -174,6 +220,29 @@ def main():
                 break
 
             time.sleep(0.1)
+
+        if args.analyze:
+            if measure_proc is None or measure_proc.returncode != 0:
+                raise RuntimeError(
+                    "Skipping analysis because measurement did not complete successfully"
+                )
+
+            analysis_csv = args.analysis_csv
+            if analysis_csv is None:
+                export_dir = _extract_export_dir(measure_args)
+                if not export_dir:
+                    raise RuntimeError(
+                        "--analysis-csv was not provided and --export-dir is missing from measure args"
+                    )
+                analysis_csv = _latest_csv_in_dir(export_dir)
+
+            measurement_features = analyze_csv(
+                analysis_csv,
+                max_events=args.analysis_max_events,
+                unit=args.analysis_unit,
+            )
+            print(f"Analysis features: {measurement_features}")
+            logging.info("Analysis features: %s", measurement_features)
 
     except (RuntimeError, ValueError) as exc:
         logging.error("Orchestration failed: %s", exc)
