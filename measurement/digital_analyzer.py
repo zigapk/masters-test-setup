@@ -55,35 +55,35 @@ def _extract_deltas(
     if max_events <= 0:
         return deltas
 
-    waiting_for_ch0_down = True
-    waiting_for_ch1_down = False
-    t_ch0_down = 0.0
+    waiting_for_both_low = True
+    waiting_for_ch1_up = False
+    t_ch0_up = 0.0
     prev_ch0 = None
     prev_ch1 = None
 
     for timestamp, ch0, ch1 in samples:
-        if waiting_for_ch0_down:
-            if prev_ch0 == 1 and prev_ch1 == 1 and ch0 == 0 and ch1 == 1:
-                t_ch0_down = timestamp
-                waiting_for_ch0_down = False
-                waiting_for_ch1_down = True
-            elif ch0 == 1 and ch1 == 1:
-                waiting_for_ch0_down = True
-                waiting_for_ch1_down = False
+        if waiting_for_both_low:
+            if prev_ch0 == 0 and prev_ch1 == 0 and ch0 == 1 and ch1 == 0:
+                t_ch0_up = timestamp
+                waiting_for_both_low = False
+                waiting_for_ch1_up = True
+            elif ch0 == 0 and ch1 == 0:
+                waiting_for_both_low = True
+                waiting_for_ch1_up = False
             else:
-                waiting_for_ch0_down = True
-                waiting_for_ch1_down = False
+                waiting_for_both_low = True
+                waiting_for_ch1_up = False
 
-        elif waiting_for_ch1_down:
-            if prev_ch0 == 0 and prev_ch1 == 1 and ch0 == 0 and ch1 == 0:
-                deltas.append(timestamp - t_ch0_down)
+        elif waiting_for_ch1_up:
+            if prev_ch0 == 1 and prev_ch1 == 0 and ch0 == 1 and ch1 == 1:
+                deltas.append(timestamp - t_ch0_up)
                 if len(deltas) >= max_events:
                     break
-                waiting_for_ch0_down = True
-                waiting_for_ch1_down = False
+                waiting_for_both_low = True
+                waiting_for_ch1_up = False
             elif ch0 == 1 and ch1 == 1:
-                waiting_for_ch0_down = True
-                waiting_for_ch1_down = False
+                waiting_for_both_low = True
+                waiting_for_ch1_up = False
 
         prev_ch0 = ch0
         prev_ch1 = ch1
@@ -145,7 +145,7 @@ def _format_features(features: Dict) -> str:
 
 def parse_args():
     parser = argparse.ArgumentParser(
-        description="Analyze digital channel CSV and extract ch0/ch1 falling-edge deltas."
+        description="Analyze digital channel CSV and extract ch0/ch1 rising-edge deltas."
     )
     parser.add_argument(
         "csv_path",
@@ -155,7 +155,7 @@ def parse_args():
         "--max-events",
         type=int,
         default=10000,
-        help="Maximum number of ch0->ch1 drop events to include (default: 10000)",
+        help="Maximum number of ch0->ch1 rise events to include (default: 10000)",
     )
     parser.add_argument(
         "--unit",
