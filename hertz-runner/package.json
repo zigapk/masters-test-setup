@@ -4,8 +4,9 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "follow": "tsx src/follow.tsx",
-    "follow-using-error-boundary": "tsx src/follow-using-error-boundary.tsx"
+    "build": "rolldown -c",
+    "follow": "node dist/follow.mjs",
+    "follow-using-error-boundary": "node dist/follow-using-error-boundary.mjs"
   },
   "keywords": [],
   "author": "",
@@ -23,6 +24,7 @@
     "@biomejs/biome": "^2.4.4",
     "@types/node": "^25.3.3",
     "@types/react": "^19.2.14",
+    "rolldown": "1.0.0-rc.8",
     "tsx": "^4.21.0"
   }
 }

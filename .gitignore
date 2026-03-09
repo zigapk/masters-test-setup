@@ -9,3 +9,6 @@ llamajet-driver-ts
 hertz
 **/bin/
 **/__pycache__/
+**/dist/
+**/data/
+**/pin-follow

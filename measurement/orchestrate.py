@@ -7,6 +7,7 @@ import signal
 import subprocess
 import sys
 import time
+import threading
 
 from digital_analyzer import analyze_csv
 
@@ -35,6 +36,11 @@ def parse_args():
         "--workload-core",
         default="3",
         help="Core for workload (default: 3).",  # kept configurable for lab flexibility
+    )
+    parser.add_argument(
+        "--no-workload-realtime",
+        action="store_true",
+        help="Run workload without chrt/taskset wrapping (for debugging).",
     )
     parser.add_argument(
         "--measure-core",
@@ -117,22 +123,53 @@ def kill_process_group(
                 logging.exception("SIGKILL group kill failed for %s", label)
         else:
             proc.kill()
+    except BaseException:
+        logging.debug("Process wait interrupted while cleaning up %s", label)
 
 
-def start_workload(command: str, cwd: str, workload_core: str) -> subprocess.Popen:
+def stream_process_output(proc: subprocess.Popen, label: str) -> threading.Thread:
+    """Stream subprocess stdout to the orchestrator logs."""
+
+    def _stream() -> None:
+        if proc.stdout is None:
+            return
+
+        for line in proc.stdout:
+            logging.info("[%s] %s", label, line.rstrip("\n"))
+
+    worker = threading.Thread(target=_stream, daemon=True)
+    worker.start()
+    return worker
+
+
+def start_workload(
+    command: str, cwd: str, workload_core: str, use_realtime: bool
+) -> subprocess.Popen:
     target = shlex.split(command)
     if not target:
         raise ValueError("--command must not be empty")
 
-    workload_cmd = ["chrt", "-f", "99", "taskset", "-c", str(workload_core)] + target
+    if use_realtime:
+        workload_cmd = [
+            "taskset",
+            "-c",
+            str(workload_core),
+        ] + target
+        logging.info("Running workload pinned to core %s", workload_core)
+    else:
+        workload_cmd = target
+        logging.warning("Running workload without realtime scheduling")
+
     logging.info(
         "Starting workload on core %s: %s", workload_core, " ".join(workload_cmd)
     )
     return subprocess.Popen(
         workload_cmd,
         cwd=cwd,
-        stdout=None,
-        stderr=None,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.STDOUT,
+        text=True,
+        bufsize=1,
         start_new_session=True,
     )
 
@@ -183,10 +220,17 @@ def main():
     logging.info("Resolved measure core: %s", measure_core)
 
     workload_proc = None
+    workload_output_logger: threading.Thread | None = None
     measure_proc = None
 
     try:
-        workload_proc = start_workload(args.command, args.cwd, args.workload_core)
+        workload_proc = start_workload(
+            args.command,
+            args.cwd,
+            args.workload_core,
+            use_realtime=not args.no_workload_realtime,
+        )
+        workload_output_logger = stream_process_output(workload_proc, "workload")
         logging.info("Workload PID: %s", workload_proc.pid)
 
         delay_end = time.monotonic() + max(0.0, args.stabilization_delay)
@@ -250,6 +294,12 @@ def main():
         kill_process_group(workload_proc, "workload")
         return 1
 
+    except KeyboardInterrupt:
+        logging.warning("Orchestration interrupted by user")
+        kill_process_group(measure_proc, "measurement")
+        kill_process_group(workload_proc, "workload")
+        return 130
+
     except Exception:
         logging.exception("Unexpected orchestration failure")
         kill_process_group(measure_proc, "measurement")
@@ -260,6 +310,9 @@ def main():
         if measure_proc and measure_proc.poll() is None:
             logging.info("Measurement still running after loop exit, terminating")
             kill_process_group(measure_proc, "measurement")
+
+        if workload_output_logger is not None:
+            workload_output_logger.join(timeout=1.0)
 
         if workload_proc and workload_proc.poll() is None:
             logging.info("Killing workload after measurement completion")

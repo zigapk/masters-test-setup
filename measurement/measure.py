@@ -2,6 +2,7 @@ import argparse
 import os
 import time
 from saleae import automation
+import sys
 
 
 def parse_args():
@@ -28,44 +29,64 @@ def parse_args():
 
 
 CHANNELS = [0, 1]
-args = parse_args()
 
-# Connect to Logic 2
-with automation.Manager.connect(port=10430) as s:
-    print("Connected to Logic 2.")
 
-    # Configure device
-    device_config = automation.LogicDeviceConfiguration(
-        enabled_digital_channels=CHANNELS,  # CH1 = estop, CH2 = dangerous output device
-        digital_sample_rate=10_000_000,  # 10 MHz — adjust as needed
-        digital_threshold_volts=3.3,
+def main() -> int:
+    args = parse_args()
+
+    print(
+        "Starting capture",
+        f"(seconds={args.seconds})",
+        "channels",
+        CHANNELS,
+        flush=True,
     )
 
-    # Capture for ~10,200 seconds to cover 10,000 cycles with margin
-    capture_config = automation.CaptureConfiguration(
-        capture_mode=automation.TimedCaptureMode(duration_seconds=args.seconds)
-    )
+    try:
+        # Connect to Logic 2
+        with automation.Manager.connect(port=10430) as s:
+            print("Connected to Logic 2.", flush=True)
 
-    device_id = "F4241" if args.test_device else None
-    if args.test_device:
-        print("Test device is in use.")
+            # Configure device
+            device_config = automation.LogicDeviceConfiguration(
+                enabled_digital_channels=CHANNELS,  # CH1 = estop, CH2 = dangerous output device
+                digital_sample_rate=10_000_000,  # 10 MHz — adjust as needed
+                digital_threshold_volts=3.3,
+            )
 
-    with s.start_capture(
-        device_id=device_id,
-        device_configuration=device_config,
-        capture_configuration=capture_config,
-    ) as capture:
-        print("Capture started.")
-        capture.wait()
-        print("Capture complete.")
+            # Capture for requested duration
+            capture_config = automation.CaptureConfiguration(
+                capture_mode=automation.TimedCaptureMode(duration_seconds=args.seconds)
+            )
 
-        # Export raw digital data to CSV
-        capture.export_raw_data_csv(
-            directory=os.path.abspath(args.export_dir),
-            digital_channels=CHANNELS,
-        )
-        print(f"Raw data exported to {args.export_dir}")
+            device_id = "F4241" if args.test_device else None
+            if args.test_device:
+                print("Test device is in use.", flush=True)
 
-        # Wait some and exit - saleae wont exit on its own
-        time.sleep(0.1)
-        os._exit(0)
+            with s.start_capture(
+                device_id=device_id,
+                device_configuration=device_config,
+                capture_configuration=capture_config,
+            ) as capture:
+                print("Capture started.", flush=True)
+                capture.wait()
+                print("Capture complete.", flush=True)
+
+                # Export raw digital data to CSV
+                capture.export_raw_data_csv(
+                    directory=os.path.abspath(args.export_dir),
+                    digital_channels=CHANNELS,
+                )
+                print(f"Raw data exported to {args.export_dir}", flush=True)
+
+                # Wait some and exit - saleae wont exit on its own
+                time.sleep(0.1)
+                return 0
+
+    except Exception as exc:
+        print(f"Measurement failed: {exc}", file=sys.stderr, flush=True)
+        return 1
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

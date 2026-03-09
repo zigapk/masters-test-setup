@@ -156,6 +156,7 @@
   # list packages installed in system profile. to search, run:
   environment.systemPackages = with pkgs; [
     git
+    btop
     neovim
     pciutils
     killall
