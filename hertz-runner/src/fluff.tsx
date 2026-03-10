@@ -25,35 +25,27 @@ export const ShallowFluff = ({ n }: { n: number }) => {
 export const DeepFluff = ({
 	n,
 	i,
-	childAtIthPosition,
+	componentAtIndexI: ComponentAtIndexI,
 }: {
 	n: number;
 	i?: number;
-	childAtIthPosition?: React.ReactNode;
+	componentAtIndexI?: React.ComponentType<Record<string, never>>;
 }) => {
 	// We reached the end of the tree.
 	if (n === 0) {
-		return <></>;
-	}
-
-	// Place the special child at the ith position.
-	if (i != null && i === n && childAtIthPosition != null) {
-		return (
-			<>
-				{childAtIthPosition}
-				{/* Recursively render the rest of the tree without subtracting 1 from n. */}
-				<DeepFluff n={n} />
-			</>
-		);
+		return null;
 	}
 
 	// Determine the pin index that is to be used.
 	const pin = (n % (MAX_PIN_ID - MIN_PIN_ID)) + MIN_PIN_ID;
+
 	// Render the input node and recursively render the rest of the tree.
+	// If at the right depth, also render the desired child at that depth.
 	return (
 		<>
+			{i === n && ComponentAtIndexI && <ComponentAtIndexI />}
 			<CCDPinIn pin={pin} onValueChange={() => {}} />
-			{<DeepFluff n={n - 1} />}
+			<DeepFluff n={n - 1} i={i} componentAtIndexI={ComponentAtIndexI} />
 		</>
 	);
 };

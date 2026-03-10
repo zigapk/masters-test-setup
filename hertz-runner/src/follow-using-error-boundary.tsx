@@ -26,6 +26,19 @@ const Fallback = ({
 	return <CCDPinOut pin={1} value={false} />;
 };
 
+const ErrorThrower = () => {
+	return (
+		<CCDPinIn
+			pin={0}
+			onValueChange={(value, isInitialRead) => {
+				if (value === false && !isInitialRead) {
+					throw new Error("Value is false - estop was pressed!");
+				}
+			}}
+		/>
+	);
+};
+
 // Follow makes digital pin 1 output follow the value of digital pin 0 using pin input and output nodes.
 const FollowUsingErrorBoundary = ({
 	children,
@@ -44,36 +57,16 @@ const FollowUsingErrorBoundary = ({
 const FollowWithShallowFluff = ({ n }: { n: number }) => {
 	return (
 		<FollowUsingErrorBoundary>
-			<CCDPinIn
-				pin={0}
-				onValueChange={(value, isInitialRead) => {
-					if (value === false && !isInitialRead) {
-						throw new Error("Value is false - estop was pressed!");
-					}
-				}}
-			/>
+			<ErrorThrower />
 			<ShallowFluff n={n} />
 		</FollowUsingErrorBoundary>
 	);
 };
 
-const FollowWithDeepFluff = ({ n, i }: { n: number; i: number }) => {
+const FollowWithDeepFluff = ({ n, d }: { n: number; d: number }) => {
 	return (
 		<FollowUsingErrorBoundary>
-			<DeepFluff
-				n={n}
-				i={i}
-				childAtIthPosition={
-					<CCDPinIn
-						pin={0}
-						onValueChange={(value, isInitialRead) => {
-							if (value === false && !isInitialRead) {
-								throw new Error("Value is false - estop was pressed!");
-							}
-						}}
-					/>
-				}
-			/>
+			<DeepFluff n={n} i={n - d} componentAtIndexI={ErrorThrower} />
 		</FollowUsingErrorBoundary>
 	);
 };
@@ -92,8 +85,8 @@ async function main() {
 				.makeOptionMandatory(),
 		)
 		.option(
-			"-i, --i <number>",
-			"value for deep fluff (required when fluff-type is deep)",
+			"-d, --d <number>",
+			"depth for how deep to nest the error thrower within deep fluw (only required when fluff-type is deep)",
 			parseInt,
 		);
 	program.parse();
@@ -103,10 +96,10 @@ async function main() {
 	// biome-ignore lint/complexity/useLiteralKeys: Either way is fine.
 	const fluffType = options["fluffType"];
 	// biome-ignore lint/complexity/useLiteralKeys: Either way is fine.
-	const i = options["i"];
+	const d = options["d"];
 
-	if (fluffType === "deep" && i === undefined) {
-		console.error("Error: --i is required when --fluff-type is 'deep'");
+	if (fluffType === "deep" && d === undefined) {
+		console.error("Error: --d is required when --fluff-type is 'deep'");
 		process.exit(1);
 	}
 
@@ -130,7 +123,7 @@ async function main() {
 		fluffType === "shallow" ? (
 			<FollowWithShallowFluff n={n} />
 		) : (
-			<FollowWithDeepFluff n={n} i={i} />
+			<FollowWithDeepFluff n={n} d={d} />
 		);
 	render(component);
 	await runEventLoop();
