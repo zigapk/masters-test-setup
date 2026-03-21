@@ -33,8 +33,8 @@ DATA_DIR = MEASUREMENT_DIR / "data"
 # Parameters
 N_VALUES = [0, 10, 20, 40, 50, 75, 100]
 
-# Calibration: 143 events in 100 seconds => 1.43 events/sec.
-EVENTS_PER_SEC = 145 / 100
+# Calibration: ~1.32 events/sec (re-measured after isInitialRead fix).
+EVENTS_PER_SEC = 132 / 100
 
 
 def _seconds_for_events(target_events: int) -> int:

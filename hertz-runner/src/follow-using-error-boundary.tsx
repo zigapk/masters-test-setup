@@ -30,8 +30,8 @@ const ErrorThrower = () => {
 	return (
 		<CCDPinIn
 			pin={0}
-			onValueChange={(value, isInitialRead) => {
-				if (value === false && !isInitialRead) {
+			onValueChange={(value) => {
+				if (value === false) {
 					throw new Error("Value is false - estop was pressed!");
 				}
 			}}
