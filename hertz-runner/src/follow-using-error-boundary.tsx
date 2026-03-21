@@ -6,7 +6,6 @@ import {
 	createReconciler,
 } from "hertz";
 import { ClearCore } from "llamajet-driver-ts";
-import { useEffect } from "react";
 import { ErrorBoundary } from "react-error-boundary";
 import { SerialPort } from "serialport";
 import { DeepFluff, ShallowFluff } from "./fluff";
@@ -17,13 +16,19 @@ const Fallback = ({
 }: {
 	resetErrorBoundary: () => void;
 }) => {
-	useEffect(() => {
-		const interval = setInterval(() => {
-			resetErrorBoundary();
-		}, 100);
-		return () => clearInterval(interval);
-	}, [resetErrorBoundary]);
-	return <CCDPinOut pin={1} value={false} />;
+	return (
+		<>
+			<CCDPinOut pin={1} value={false} />
+			<CCDPinIn
+				pin={0}
+				onValueChange={(value) => {
+					if (value === true) {
+						resetErrorBoundary();
+					}
+				}}
+			/>
+		</>
+	);
 };
 
 const ErrorThrower = () => {
