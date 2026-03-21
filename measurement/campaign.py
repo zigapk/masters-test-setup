@@ -32,6 +32,8 @@ DATA_DIR = MEASUREMENT_DIR / "data"
 
 # Parameters
 N_VALUES = [0, 10, 20, 40, 50, 75, 100]
+# Short mode overrides.
+SHORT_TARGET_EVENTS = 100
 
 # Calibration: ~1.32 events/sec (re-measured after isInitialRead fix).
 EVENTS_PER_SEC = 132 / 100
@@ -267,7 +269,7 @@ def main() -> int:
     parser.add_argument(
         "--short",
         action="store_true",
-        help="Smoke-test mode: override pending jobs to 20s capture / 25 min events.",
+        help="Smoke-test mode: override pending jobs to 100 min events.",
     )
     args = parser.parse_args()
 
@@ -275,10 +277,11 @@ def main() -> int:
 
     # --short: override seconds and min_events for jobs that haven't completed yet.
     if args.short:
+        short_seconds = _seconds_for_events(SHORT_TARGET_EVENTS)
         for job in jobs:
             if not _is_complete(job["dirname"]):
-                job["seconds"] = 20
-                job["min_events"] = 25
+                job["seconds"] = short_seconds
+                job["min_events"] = SHORT_TARGET_EVENTS
 
     if args.dry_run:
         done = 0
