@@ -14,6 +14,14 @@ This repository contains the base environment for performance testing `zigapk/he
 
 Both commands run from within the nix dev shell. Each pre-builds the program (Go binary / rolldown JS bundle) and then runs it pinned to isolated core 3 via `taskset -c 3`. The orchestrator launches the Saleae logic analyzer capture in parallel and reports latency statistics at the end.
 
+Before running measurements, start Saleae Logic 2 with automation enabled in the background:
+
+```bash
+xvfb-run -s "-screen 0 1280x720x24 +extension GLX +render" env LIBGL_ALWAYS_SOFTWARE=1 MESA_LOADER_DRIVER_OVERRIDE=llvmpipe saleae-logic-2 --automation --automation-port 10430 --disable-gpu &
+```
+
+Keep this process running while running the measurement commands, then stop it when finished.
+
 Replace `N` with the number of additional digital pin reads per cycle (workload) and `DIRNAME` with the desired output directory name.
 
 ### Go
@@ -41,4 +49,3 @@ nix develop /home/zigapk/masters-test-setup/ --command bash -c \
    --cwd /home/zigapk/masters-test-setup/hertz-runner \
    --export-dir ./data/DIRNAME --seconds 20"
 ```
-
