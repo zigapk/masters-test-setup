@@ -49,12 +49,26 @@ def _read_samples(csv_path: Path) -> Iterable[Tuple[float, int, int]]:
 
 
 def _extract_deltas(
-    samples: Iterable[Tuple[float, int, int]], max_events: int
-) -> List[float]:
+    samples: Iterable[Tuple[float, int, int]],
+    max_events: int,
+    count_all: bool = False,
+) -> List[float] | Tuple[List[float], int]:
+    """Extract rising-edge deltas between ch0 and ch1.
+
+    When *count_all* is False (default), returns ``List[float]`` — at most
+    *max_events* deltas (stops reading the CSV early).
+
+    When *count_all* is True, continues scanning the entire CSV after
+    collecting *max_events* deltas and returns ``(deltas, total_events)``
+    where *total_events* is the total number of events found in the file
+    (uncapped).
+    """
     deltas: List[float] = []
-    if max_events <= 0:
+    if max_events <= 0 and not count_all:
         return deltas
 
+    total_count = 0
+    capped = False
     waiting_for_both_low = True
     waiting_for_ch1_up = False
     t_ch0_up = 0.0
@@ -76,9 +90,15 @@ def _extract_deltas(
 
         elif waiting_for_ch1_up:
             if prev_ch0 == 1 and prev_ch1 == 0 and ch0 == 1 and ch1 == 1:
-                deltas.append(timestamp - t_ch0_up)
-                if len(deltas) >= max_events:
-                    break
+                total_count += 1
+                if not capped:
+                    deltas.append(timestamp - t_ch0_up)
+                    if len(deltas) >= max_events:
+                        if not count_all:
+                            prev_ch0 = ch0
+                            prev_ch1 = ch1
+                            break
+                        capped = True
                 waiting_for_both_low = True
                 waiting_for_ch1_up = False
             elif ch0 == 1 and ch1 == 1:
@@ -88,32 +108,52 @@ def _extract_deltas(
         prev_ch0 = ch0
         prev_ch1 = ch1
 
+    if count_all:
+        return deltas, total_count
     return deltas
 
 
-def _compute_stats(deltas: List[float], unit: str = "s") -> Dict[str, float | None]:
+def _compute_stats(
+    deltas: List[float], unit: str = "s", threshold_ms: float | None = None
+) -> Dict[str, float | None]:
     factor = {"s": 1.0, "ms": 1_000.0, "us": 1_000_000.0}[unit]
     converted = [d * factor for d in deltas]
 
     if not converted:
-        return {
+        result: Dict[str, float | None] = {
             "count": 0,
             "average": None,
             "stddev": None,
             "min": None,
             "max": None,
         }
+        if threshold_ms is not None:
+            result["outlier_threshold_ms"] = threshold_ms
+            result["outlier_count"] = 0
+        return result
 
-    return {
+    result = {
         "count": len(converted),
         "average": statistics.mean(converted),
         "stddev": statistics.pstdev(converted),
         "min": min(converted),
         "max": max(converted),
     }
+    if threshold_ms is not None:
+        # Count how many deltas exceed the threshold (compare in ms)
+        deltas_ms = [d * 1_000.0 for d in deltas]
+        outliers = sum(1 for d in deltas_ms if d > threshold_ms)
+        result["outlier_threshold_ms"] = threshold_ms
+        result["outlier_count"] = outliers
+    return result
 
 
-def analyze_csv(csv_path: str, max_events: int = 10000, unit: str = "ms") -> Dict:
+def analyze_csv(
+    csv_path: str,
+    max_events: int = 10000,
+    unit: str = "ms",
+    threshold_ms: float | None = None,
+) -> Dict:
     if unit not in {"s", "ms", "us"}:
         raise ValueError("unit must be one of: s, ms, us")
     path = Path(csv_path)
@@ -121,12 +161,15 @@ def analyze_csv(csv_path: str, max_events: int = 10000, unit: str = "ms") -> Dic
         raise FileNotFoundError(f"CSV file not found: {path}")
 
     samples = _read_samples(path)
-    deltas = _extract_deltas(samples, max_events=max_events)
-    stats = _compute_stats(deltas, unit=unit)
+    deltas, total_events = _extract_deltas(  # type: ignore[misc]
+        samples, max_events=max_events, count_all=True
+    )
+    stats = _compute_stats(deltas, unit=unit, threshold_ms=threshold_ms)
     return {
         "csv_path": str(path.resolve()),
         "requested_max_events": max_events,
         "unit": unit,
+        "total_events": total_events,
         **stats,
     }
 
@@ -135,12 +178,21 @@ def _format_features(features: Dict) -> str:
     if features["count"] == 0:
         return f"No matching sequences found in {features['csv_path']} (max_events={features['requested_max_events']})"
 
-    return (
-        f"count={features['count']} | average={features['average']:.6f} {features['unit']} "
+    line = f"count={features['count']}"
+    if "total_events" in features:
+        line += f" (total_events={features['total_events']})"
+    line += (
+        f" | average={features['average']:.6f} {features['unit']} "
         f"| stddev={features['stddev']:.6f} {features['unit']} "
         f"| min={features['min']:.6f} {features['unit']} "
         f"| max={features['max']:.6f} {features['unit']}"
     )
+    if "outlier_count" in features and features.get("outlier_threshold_ms") is not None:
+        line += (
+            f" | outliers(>{features['outlier_threshold_ms']:.1f}ms)="
+            f"{int(features['outlier_count'])}/{features['count']}"
+        )
+    return line
 
 
 def parse_args():
@@ -168,12 +220,24 @@ def parse_args():
         action="store_true",
         help="Print JSON output instead of compact one-line output.",
     )
+    parser.add_argument(
+        "--threshold",
+        type=float,
+        default=None,
+        metavar="MS",
+        help="Count outliers exceeding this threshold in milliseconds (e.g. 300).",
+    )
     return parser.parse_args()
 
 
 def main() -> int:
     args = parse_args()
-    features = analyze_csv(args.csv_path, max_events=args.max_events, unit=args.unit)
+    features = analyze_csv(
+        args.csv_path,
+        max_events=args.max_events,
+        unit=args.unit,
+        threshold_ms=args.threshold,
+    )
     if args.json:
         print(json.dumps(features, indent=2))
     else:
