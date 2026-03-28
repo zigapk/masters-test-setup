@@ -24,6 +24,8 @@ import matplotlib
 
 matplotlib.use("Agg")
 
+from matplotlib.axes import Axes
+from matplotlib.figure import Figure
 import matplotlib.pyplot as plt
 import matplotlib.ticker as ticker
 import numpy as np
@@ -47,9 +49,26 @@ CHARTS_DIR = MEASUREMENT_DIR / "charts"
 # Campaign parameters (must match campaign.py)
 # ---------------------------------------------------------------------------
 N_VALUES = [0, 10, 20, 40, 50, 75, 100]
-DEPTH_VALUES = list(range(50))
+ERROR_BOUNDARY_DEPTH_N_VALUES = [10, 20, 30, 40, 50, 60]
 MAX_EVENTS = 10_000
 MAX_EVENTS_DEPTH = 500
+
+
+def _depth_range_for_n(n: int) -> range:
+    """Return the depth values to measure for a given N.
+
+    Kept as ``range(n)`` to match the historical convention in existing data
+    (e.g. previous deep depth sweep used d=0..49 for N=50).
+    """
+
+    return range(n)
+
+
+def _depth_count_for_n(n: int) -> int:
+    """Return number of depth points for the given N."""
+
+    return len(_depth_range_for_n(n))
+
 
 # ---------------------------------------------------------------------------
 # Series definitions for the "Latency vs N" charts.
@@ -67,7 +86,23 @@ SERIES_VS_N: List[Tuple[str, str, str, str]] = [
 # Single series for the "Latency vs Depth" charts.
 DEPTH_SERIES_COLOR = "#1f77b4"
 DEPTH_SERIES_MARKER = "o"
-DEPTH_SERIES_LABEL = "Hertz EB deep (n=50)"
+DEPTH_SERIES_COLOR_BY_N: Dict[int, str] = {
+    10: "#1f77b4",
+    20: "#ff7f0e",
+    30: "#2ca02c",
+    40: "#d62728",
+    50: "#9467bd",
+    60: "#8c564b",
+}
+DEPTH_SERIES_MARKER_BY_N: Dict[int, str] = {
+    10: "o",
+    20: "s",
+    30: "^",
+    40: "D",
+    50: "v",
+    60: "x",
+}
+DEPTH_SERIES_LABEL_PREFIX = "Hertz EB deep"
 
 # ---------------------------------------------------------------------------
 # Outlier threshold
@@ -99,9 +134,30 @@ def _load_deltas_ms(
     except Exception as exc:
         print(f"  WARNING: failed to read {csv_path}: {exc}")
         return None
+    if isinstance(deltas, (int, float)):
+        deltas = [float(deltas)]
     if not deltas:
         return None
-    return [d * 1000.0 for d in deltas], total_events  # s → ms
+    deltas_ms = [d * 1000.0 for d in list(deltas)]
+    return deltas_ms, int(total_events)  # s → ms
+
+
+def _depth_color(n: int) -> str:
+    """Color for one EB-deep depth series."""
+
+    return DEPTH_SERIES_COLOR_BY_N.get(n, DEPTH_SERIES_COLOR)
+
+
+def _depth_marker(n: int) -> str:
+    """Marker for one EB-deep depth series."""
+
+    return DEPTH_SERIES_MARKER_BY_N.get(n, DEPTH_SERIES_MARKER)
+
+
+def _depth_label(n: int) -> str:
+    """Legend label for one EB-deep depth series."""
+
+    return f"{DEPTH_SERIES_LABEL_PREFIX} (n={n})"
 
 
 def _compute_full_stats(deltas: List[float], total_events: int) -> Dict[str, float]:
@@ -162,25 +218,29 @@ def load_vs_n_data() -> Dict[str, List[Optional[Dict[str, float]]]]:
     return result
 
 
-def load_vs_depth_data() -> List[Optional[Dict[str, float]]]:
-    """Load stats for each depth value d=0..49."""
-    depth_stats: List[Optional[Dict[str, float]]] = []
-    for d in DEPTH_VALUES:
-        dirname = f"campaign-hertz-eb-deep-n50-d{d}"
-        csv_path = DATA_DIR / dirname / "digital.csv"
-        loaded = _load_deltas_ms(csv_path, MAX_EVENTS_DEPTH)
-        if loaded is not None:
-            deltas, total_events = loaded
-            stats = _compute_full_stats(deltas, total_events)
-            depth_stats.append(stats)
-            if stats["outlier_count"] > 0:
-                print(
-                    f"  {dirname}: {int(stats['outlier_count'])}/{int(stats['count'])} "
-                    f"outliers (>{OUTLIER_THRESHOLD_MS:.0f} ms)"
-                )
-        else:
-            depth_stats.append(None)
-    return depth_stats
+def load_vs_depth_data() -> Dict[int, List[Optional[Dict[str, float]]]]:
+    """Load EB-deep depth stats for the configured N values."""
+    result: Dict[int, List[Optional[Dict[str, float]]]] = {}
+
+    for n in ERROR_BOUNDARY_DEPTH_N_VALUES:
+        depth_stats: List[Optional[Dict[str, float]]] = []
+        for d in _depth_range_for_n(n):
+            dirname = f"campaign-hertz-eb-deep-n{n}-d{d}"
+            csv_path = DATA_DIR / dirname / "digital.csv"
+            loaded = _load_deltas_ms(csv_path, MAX_EVENTS_DEPTH)
+            if loaded is not None:
+                deltas, total_events = loaded
+                stats = _compute_full_stats(deltas, total_events)
+                depth_stats.append(stats)
+                if stats["outlier_count"] > 0:
+                    print(
+                        f"  {dirname}: {int(stats['outlier_count'])}/{int(stats['count'])} "
+                        f"outliers (>{OUTLIER_THRESHOLD_MS:.0f} ms)"
+                    )
+            else:
+                depth_stats.append(None)
+        result[n] = depth_stats
+    return result
 
 
 # ---------------------------------------------------------------------------
@@ -202,7 +262,7 @@ def _series_marker(label: str) -> str:
     return "o"
 
 
-def _apply_common_style(ax: plt.Axes, xlabel: str, ylabel: str, title: str) -> None:
+def _apply_common_style(ax: Axes, xlabel: str, ylabel: str, title: str) -> None:
     ax.set_xlabel(xlabel, fontsize=11)
     ax.set_ylabel(ylabel, fontsize=11)
     ax.set_title(title, fontsize=13, fontweight="bold")
@@ -212,7 +272,7 @@ def _apply_common_style(ax: plt.Axes, xlabel: str, ylabel: str, title: str) -> N
     ax.tick_params(labelsize=10)
 
 
-def _save_chart(fig: plt.Figure, name: str) -> None:
+def _save_chart(fig: Figure, name: str) -> None:
     for fmt in FORMATS:
         out = CHARTS_DIR / f"{name}.{fmt}"
         fig.savefig(out, format=fmt, dpi=DPI, bbox_inches="tight")
@@ -221,7 +281,7 @@ def _save_chart(fig: plt.Figure, name: str) -> None:
 
 
 def _add_linear_fit(
-    ax: plt.Axes,
+    ax: Axes,
     x_vals: List[float],
     y_vals: List[float],
     color: str,
@@ -244,8 +304,9 @@ def _add_linear_fit(
 def _plot_vs_n_mean(
     data: Dict[str, List[Optional[Dict[str, float]]]],
     fit: bool = False,
+    show_stddev: bool = True,
 ) -> Optional[str]:
-    """Mean + stddev error bars."""
+    """Mean latency, optionally with stddev error bars."""
     fig, ax = plt.subplots(figsize=(9, 5.5))
     has_data = False
 
@@ -261,18 +322,29 @@ def _plot_vs_n_mean(
         has_data = True
         color = _series_color(label)
         marker = _series_marker(label)
-        ax.errorbar(
-            xs,
-            ys,
-            yerr=errs,
-            label=label,
-            color=color,
-            marker=marker,
-            markersize=5,
-            capsize=3,
-            linestyle="none",
-            elinewidth=1.0,
-        )
+        if show_stddev:
+            ax.errorbar(
+                xs,
+                ys,
+                yerr=errs,
+                label=label,
+                color=color,
+                marker=marker,
+                markersize=5,
+                capsize=3,
+                linestyle="none",
+                elinewidth=1.0,
+            )
+        else:
+            ax.plot(
+                xs,
+                ys,
+                label=label,
+                color=color,
+                marker=marker,
+                markersize=5,
+                linestyle="none",
+            )
         if fit:
             _add_linear_fit(ax, xs, ys, color)
 
@@ -284,10 +356,17 @@ def _plot_vs_n_mean(
         ax,
         xlabel="Component count (N)",
         ylabel="Latency (ms)",
-        title="E-stop latency vs component count — Mean ± StdDev",
+        title=(
+            "E-stop latency vs component count — Mean"
+            if not show_stddev
+            else "E-stop latency vs component count — Mean ± StdDev"
+        ),
     )
     ax.set_xticks(N_VALUES)
-    name = "latency_vs_n_mean_fit" if fit else "latency_vs_n_mean"
+    if not show_stddev:
+        name = "latency_vs_n_mean_nostd_fit" if fit else "latency_vs_n_mean_nostd"
+    else:
+        name = "latency_vs_n_mean_fit" if fit else "latency_vs_n_mean"
     _save_chart(fig, name)
     return name
 
@@ -405,48 +484,84 @@ def _plot_vs_n_max(
 
 
 def _plot_vs_depth_mean(
-    depth_data: List[Optional[Dict[str, float]]],
+    depth_data: Dict[int, List[Optional[Dict[str, float]]]],
     fit: bool = False,
+    show_stddev: bool = True,
 ) -> Optional[str]:
     fig, ax = plt.subplots(figsize=(9, 5.5))
-    xs, ys, errs = [], [], []
-    for i, s in enumerate(depth_data):
-        if s is not None:
-            xs.append(DEPTH_VALUES[i])
-            ys.append(s["mean"])
-            errs.append(s["stddev"])
-    if not xs:
+    has_data = False
+
+    for n, stats in depth_data.items():
+        xs, ys, errs = [], [], []
+        for d, s in enumerate(stats):
+            if s is not None:
+                xs.append(d)
+                ys.append(s["mean"])
+                errs.append(s["stddev"])
+        if not xs:
+            continue
+        has_data = True
+        color = _depth_color(n)
+        marker = _depth_marker(n)
+        if show_stddev:
+            ax.errorbar(
+                xs,
+                ys,
+                yerr=errs,
+                label=_depth_label(n),
+                color=color,
+                marker=marker,
+                markersize=4,
+                capsize=2,
+                linestyle="none",
+                elinewidth=0.8,
+            )
+        else:
+            ax.plot(
+                xs,
+                ys,
+                label=_depth_label(n),
+                color=color,
+                marker=marker,
+                markersize=4,
+                linestyle="none",
+            )
+        if fit:
+            _add_linear_fit(ax, xs, ys, color)
+
+    if not has_data:
         plt.close(fig)
         return None
 
-    ax.errorbar(
-        xs,
-        ys,
-        yerr=errs,
-        label=DEPTH_SERIES_LABEL,
-        color=DEPTH_SERIES_COLOR,
-        marker=DEPTH_SERIES_MARKER,
-        markersize=4,
-        capsize=2,
-        linestyle="none",
-        elinewidth=0.8,
-    )
-    if fit:
-        _add_linear_fit(ax, xs, ys, DEPTH_SERIES_COLOR)
+    if not depth_data:
+        plt.close(fig)
+        return None
+    max_depth = max(_depth_count_for_n(n) for n in depth_data)
+    if max_depth > 0:
+        ax.set_xticks(range(max_depth))
 
     _apply_common_style(
         ax,
         xlabel="Error boundary depth (D)",
         ylabel="Latency (ms)",
-        title="E-stop latency vs error-boundary depth — Mean ± StdDev",
+        title=(
+            "E-stop latency vs error-boundary depth — Mean"
+            if not show_stddev
+            else "E-stop latency vs error-boundary depth — Mean ± StdDev"
+        ),
     )
-    name = "latency_vs_depth_mean_fit" if fit else "latency_vs_depth_mean"
+    if not show_stddev:
+        name = (
+            "latency_vs_depth_mean_nostd_fit" if fit else "latency_vs_depth_mean_nostd"
+        )
+    else:
+        name = "latency_vs_depth_mean_fit" if fit else "latency_vs_depth_mean"
     _save_chart(fig, name)
     return name
 
 
 def _plot_vs_depth_median(
-    depth_data: List[Optional[Dict[str, float]]],
+    depth_data: Dict[int, List[Optional[Dict[str, float]]]],
     plo_key: str,
     phi_key: str,
     plo_label: str,
@@ -455,32 +570,48 @@ def _plot_vs_depth_median(
     fit: bool = False,
 ) -> Optional[str]:
     fig, ax = plt.subplots(figsize=(9, 5.5))
-    xs, medians, lo_errs, hi_errs = [], [], [], []
-    for i, s in enumerate(depth_data):
-        if s is not None:
-            xs.append(DEPTH_VALUES[i])
-            med = s["median"]
-            medians.append(med)
-            lo_errs.append(med - s[plo_key])
-            hi_errs.append(s[phi_key] - med)
-    if not xs:
+    has_data = False
+
+    for n, stats in depth_data.items():
+        xs, medians, lo_errs, hi_errs = [], [], [], []
+        for d, s in enumerate(stats):
+            if s is not None:
+                xs.append(d)
+                med = s["median"]
+                medians.append(med)
+                lo_errs.append(med - s[plo_key])
+                hi_errs.append(s[phi_key] - med)
+        if not xs:
+            continue
+        has_data = True
+        color = _depth_color(n)
+        marker = _depth_marker(n)
+
+        ax.errorbar(
+            xs,
+            medians,
+            yerr=[lo_errs, hi_errs],
+            label=_depth_label(n),
+            color=color,
+            marker=marker,
+            markersize=4,
+            capsize=2,
+            linestyle="none",
+            elinewidth=0.8,
+        )
+        if fit:
+            _add_linear_fit(ax, xs, medians, color)
+
+    if not has_data:
         plt.close(fig)
         return None
 
-    ax.errorbar(
-        xs,
-        medians,
-        yerr=[lo_errs, hi_errs],
-        label=DEPTH_SERIES_LABEL,
-        color=DEPTH_SERIES_COLOR,
-        marker=DEPTH_SERIES_MARKER,
-        markersize=4,
-        capsize=2,
-        linestyle="none",
-        elinewidth=0.8,
-    )
-    if fit:
-        _add_linear_fit(ax, xs, medians, DEPTH_SERIES_COLOR)
+    if not depth_data:
+        plt.close(fig)
+        return None
+    max_depth = max(_depth_count_for_n(n) for n in depth_data)
+    if max_depth > 0:
+        ax.set_xticks(range(max_depth))
 
     _apply_common_style(
         ax,
@@ -498,30 +629,46 @@ def _plot_vs_depth_median(
 
 
 def _plot_vs_depth_max(
-    depth_data: List[Optional[Dict[str, float]]],
+    depth_data: Dict[int, List[Optional[Dict[str, float]]]],
     fit: bool = False,
 ) -> Optional[str]:
     fig, ax = plt.subplots(figsize=(9, 5.5))
-    xs, ys = [], []
-    for i, s in enumerate(depth_data):
-        if s is not None:
-            xs.append(DEPTH_VALUES[i])
-            ys.append(s["max"])
-    if not xs:
+    has_data = False
+
+    for n, stats in depth_data.items():
+        xs, ys = [], []
+        for d, s in enumerate(stats):
+            if s is not None:
+                xs.append(d)
+                ys.append(s["max"])
+        if not xs:
+            continue
+        has_data = True
+        color = _depth_color(n)
+        marker = _depth_marker(n)
+
+        ax.plot(
+            xs,
+            ys,
+            label=_depth_label(n),
+            color=color,
+            marker=marker,
+            markersize=4,
+            linestyle="none",
+        )
+        if fit:
+            _add_linear_fit(ax, xs, ys, color)
+
+    if not has_data:
         plt.close(fig)
         return None
 
-    ax.plot(
-        xs,
-        ys,
-        label=DEPTH_SERIES_LABEL,
-        color=DEPTH_SERIES_COLOR,
-        marker=DEPTH_SERIES_MARKER,
-        markersize=4,
-        linestyle="none",
-    )
-    if fit:
-        _add_linear_fit(ax, xs, ys, DEPTH_SERIES_COLOR)
+    if not depth_data:
+        plt.close(fig)
+        return None
+    max_depth = max(_depth_count_for_n(n) for n in depth_data)
+    if max_depth > 0:
+        ax.set_xticks(range(max_depth))
 
     _apply_common_style(
         ax,
@@ -571,8 +718,18 @@ def main() -> int:
 
     print("Loading latency-vs-depth data...")
     vs_depth_data = load_vs_depth_data()
-    total_depth = sum(1 for s in vs_depth_data if s is not None)
-    print(f"  Loaded {total_depth} / {len(DEPTH_VALUES)} depth datasets.")
+    total_depth = sum(
+        1
+        for depth_stats in vs_depth_data.values()
+        for s in depth_stats
+        if s is not None
+    )
+    total_depth_expected = sum(
+        _depth_count_for_n(n) for n in ERROR_BOUNDARY_DEPTH_N_VALUES
+    )
+    print(
+        f"  Loaded {total_depth} / {total_depth_expected} depth datasets across configured N values."
+    )
 
     # --- Generate Latency vs N charts ---
     print("\nGenerating latency-vs-N charts...")
@@ -580,6 +737,14 @@ def main() -> int:
     # Mean + stddev
     _track(_plot_vs_n_mean(vs_n_data, fit=False), "latency_vs_n_mean")
     _track(_plot_vs_n_mean(vs_n_data, fit=True), "latency_vs_n_mean_fit")
+    _track(
+        _plot_vs_n_mean(vs_n_data, fit=False, show_stddev=False),
+        "latency_vs_n_mean_nostd",
+    )
+    _track(
+        _plot_vs_n_mean(vs_n_data, fit=True, show_stddev=False),
+        "latency_vs_n_mean_nostd_fit",
+    )
 
     # Median + percentile variants
     for plo_key, phi_key, plo_label, phi_label, suffix in PERCENTILE_CONFIGS:
@@ -606,6 +771,14 @@ def main() -> int:
     # Mean + stddev
     _track(_plot_vs_depth_mean(vs_depth_data, fit=False), "latency_vs_depth_mean")
     _track(_plot_vs_depth_mean(vs_depth_data, fit=True), "latency_vs_depth_mean_fit")
+    _track(
+        _plot_vs_depth_mean(vs_depth_data, fit=False, show_stddev=False),
+        "latency_vs_depth_mean_nostd",
+    )
+    _track(
+        _plot_vs_depth_mean(vs_depth_data, fit=True, show_stddev=False),
+        "latency_vs_depth_mean_nostd_fit",
+    )
 
     # Median + percentile variants
     for plo_key, phi_key, plo_label, phi_label, suffix in PERCENTILE_CONFIGS:
@@ -651,17 +824,17 @@ def main() -> int:
                 dirname = tmpl.format(n=n)
                 print(f"  {dirname:45s}  {out:>8d}  {cnt:>8d}  {total_ev:>8d}")
 
-    for i, s in enumerate(vs_depth_data):
-        if s is not None:
-            d = DEPTH_VALUES[i]
-            dirname = f"campaign-hertz-eb-deep-n50-d{d}"
-            cnt = int(s["count"])
-            total_ev = int(s["total_events"])
-            out = int(s["outlier_count"])
-            grand_analysed += cnt
-            grand_total_events += total_ev
-            grand_outliers += out
-            print(f"  {dirname:45s}  {out:>8d}  {cnt:>8d}  {total_ev:>8d}")
+    for n, stats_list in vs_depth_data.items():
+        for d, s in enumerate(stats_list):
+            if s is not None:
+                dirname = f"campaign-hertz-eb-deep-n{n}-d{d}"
+                cnt = int(s["count"])
+                total_ev = int(s["total_events"])
+                out = int(s["outlier_count"])
+                grand_analysed += cnt
+                grand_total_events += total_ev
+                grand_outliers += out
+                print(f"  {dirname:45s}  {out:>8d}  {cnt:>8d}  {total_ev:>8d}")
 
     print(f"  {'-' * 45}  {'-' * 8}  {'-' * 8}  {'-' * 8}")
     print(

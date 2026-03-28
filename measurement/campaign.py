@@ -32,6 +32,7 @@ DATA_DIR = MEASUREMENT_DIR / "data"
 
 # Parameters
 N_VALUES = [0, 10, 20, 40, 50, 75, 100]
+ERROR_BOUNDARY_DEPTH_SWEEP_N_VALUES = [10, 20, 30, 40, 50, 60]
 # Short mode overrides.
 SHORT_TARGET_EVENTS = 100
 
@@ -127,19 +128,20 @@ def _hertz_jobs() -> List[Dict[str, Any]]:
             }
         )
 
-    # --- follow-using-error-boundary, n=50, deep, vary d (0..49) ---
-    for d in range(50):
-        jobs.append(
-            {
-                "dirname": f"campaign-hertz-eb-deep-n50-d{d}",
-                "build_cmd": "pnpm build",
-                "build_cwd": str(HERTZ_RUNNER_DIR),
-                "run_cmd": f"pnpm follow-using-error-boundary -n 50 -f deep -d {d}",
-                "run_cwd": str(HERTZ_RUNNER_DIR),
-                "seconds": SECONDS_500,
-                "min_events": 500,
-            }
-        )
+    # --- follow-using-error-boundary, deep, sweep depth d=0..(n-1) for selected N ---
+    for n in ERROR_BOUNDARY_DEPTH_SWEEP_N_VALUES:
+        for d in range(n):
+            jobs.append(
+                {
+                    "dirname": f"campaign-hertz-eb-deep-n{n}-d{d}",
+                    "build_cmd": "pnpm build",
+                    "build_cwd": str(HERTZ_RUNNER_DIR),
+                    "run_cmd": f"pnpm follow-using-error-boundary -n {n} -f deep -d {d}",
+                    "run_cwd": str(HERTZ_RUNNER_DIR),
+                    "seconds": SECONDS_500,
+                    "min_events": 500,
+                }
+            )
 
     return jobs
 
